@@ -14,7 +14,9 @@ kubectl label namespace default istio-injection=enabled
 ```
 ## Istio
 
-### Canary Deployment
+### Canary release
+
+#### add `version` for diff Deployments 
 
 ```yaml
 
@@ -46,7 +48,7 @@ spec:
         version: safe
     spec:
       containers:
-      - image: richardchesterwood/istio-fleetman-staff-service:6-placeholder
+      - image: richardchesterwood/istio-fleetman-staff-service:6-old
         name: staff-service        
         env:
         - name: SPRING_PROFILES_ACTIVE
@@ -72,7 +74,7 @@ spec:
     spec:
       containers:
       - name: staff-service
-        image: richardchesterwood/istio-fleetman-staff-service:6
+        image: richardchesterwood/istio-fleetman-staff-service:6-new
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
@@ -82,13 +84,13 @@ spec:
 
 ```
 
-#### VirtualService and DestinationRule
+#### use VirtualService and DestinationRule do canary release
 ```yaml
 
 kind: VirtualService
 apiVersion: networking.istio.io/v1alpha3
 metadata:
-  name: a-set-of-routing-rules-we-can-call-this-anything  # "just" a name for this virtualservice
+  name: fleetman-staff-service-vs  # "just" a name for this virtualservice
   namespace: default
 spec:
   hosts:
@@ -110,7 +112,7 @@ spec:
 kind: DestinationRule       # Defining which pods should be part of each subset
 apiVersion: networking.istio.io/v1alpha3
 metadata:
-  name: grouping-rules-for-our-photograph-canary-release # This can be anything you like.
+  name: fleetman-staff-service-canary-release # This can be anything you like.
   namespace: default
 spec:
   host: fleetman-staff-service # Service
