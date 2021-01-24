@@ -20,7 +20,7 @@ metadata:
   namespace: default
 spec:
   host: fleetman-staff-service # Service
-  trafficPolicy:
+  trafficPolicy:  #  https://istio.io/latest/docs/reference/config/networking/destination-rule/#LoadBalancerSettings-ConsistentHashLB
     loadBalancer:
       consistentHash:
         httpHeaderName: "x-myval"
