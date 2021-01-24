@@ -26,8 +26,12 @@ istioctl dashboard grafana
 istioctl dashboard jaeger
 
 ```
-## Istio
+## fleetman services overview
 
+![service overview](./svc-overview.png)
+
+
+## Istio
 
 ### Canary release
 
@@ -767,6 +771,9 @@ spec:
 ```
 
 #### config circuit-breaker for `fleetman-staff-service`
+
+https://istio.io/latest/docs/reference/config/networking/destination-rule/#OutlierDetection
+
 ```yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
@@ -792,6 +799,67 @@ kubectl apply -f 5-application-no-istio.yaml
 kubectl apply -f 6-gateway.yaml 
 kubectl apply -f 7-circuit-breaking.yaml
 
+```
+
+```
+# test
+curl localhost/api/vehicles/driver/City%20Truck
+
+```
+#### fleetman-api-gateway 
+```
+	
+	@GetMapping("/vehicles/driver/{vehicleName}")
+	@ResponseBody
+	@CrossOrigin(origins = "*")
+	public String getDriverFor(@PathVariable("vehicleName") String vehicleName)
+	{
+		return externalService.getDriverFor(vehicleName);
+	}		
+
+```
+##### nginx for webappp
+```conf
+events {
+  worker_connections  4096;  ## Default: 1024
+}
+
+http {
+   map $http_upgrade $connection_upgrade {
+       default upgrade;
+      '' close;
+   }
+
+   include /etc/nginx/mime.types;
+
+   server {
+      listen 80;
+
+      location /api {
+        proxy_set_header        Host fleetman-api-gateway;
+        proxy_set_header        X-Real-IP $remote_addr;
+        proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header        X-Forwarded-Proto $scheme;
+        proxy_pass              http://fleetman-api-gateway:8080/;
+        proxy_read_timeout      90;
+        proxy_http_version      1.1;  # recommended with keepalive connections - http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_http_version
+
+        # WebSocket proxying - from http://nginx.org/en/docs/http/websocket.html
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+      }
+
+      location / {
+         rewrite ^/canary(.*)$ $1 last;
+         root /usr/share/nginx/html;
+         try_files $uri $uri/ /index.html;
+         expires       0;
+         add_header    Cache-Control  public;
+         add_header    Cache-Control  no-store;
+         add_header    Cache-Control  no-cache;
+      }
+    }
+}
 ```
 
 
